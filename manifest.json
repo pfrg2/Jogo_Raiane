@@ -1,0 +1,16 @@
+{
+  "name": "Expedição Mantiqueira",
+  "short_name": "Expedição",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f9f7f2",
+  "theme_color": "#1b3022",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -324,8 +324,34 @@
     function secretReset() {
         resetCounter++;
         if (resetCounter >= 5) {
+        // 1. Limpa os dados salvos
             localStorage.clear();
-            location.reload();
+        
+        // 2. Reseta o estado do jogo no código
+            currentStep = 0;
+            resetCounter = 0;
+
+        // 3. Limpa o mapa (remove marcadores e rotas antigas)
+            map.eachLayer((layer) => {
+                if (layer instanceof L.Marker || layer instanceof L.GeoJSON) {
+                    map.removeLayer(layer);
+                }
+        });
+
+        // 4. Repõe o estado inicial
+            L.marker(GRU_COORDS).addTo(map).bindPopup("Início da Expedição");
+            map.setView(GRU_COORDS, 11);
+        
+        // 5. Mostra a tela de introdução novamente
+            const intro = document.getElementById('intro-screen');
+            intro.style.display = 'flex';
+            intro.classList.remove('hidden');
+
+        // 6. Atualiza a lógica visual
+            renderProgress();
+        
+        // Opcional: Alerta visual de que o jogo foi resetado
+            console.log("Expedição reiniciada com sucesso!");
         }
     }
 
@@ -339,4 +365,5 @@
     window.onload = initMap;
 </script>
 </body>
+
 </html>

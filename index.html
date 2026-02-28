@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MantiRai</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1b3022">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="icon" sizes="192x192" href="icon.png">
+    <link rel="icon" sizes="512x512" href="icon.png">
+
+    <style>
+        /* --- FONTES LOCAIS --- */
+        @font-face {
+            font-family: 'Playfair Display';
+            font-weight: 700;
+            src: url('./fonts/playfair-display-v37-latin-700.woff2') format('woff2'); 
+        }
+        @font-face {
+            font-family: 'Playfair Display';
+            font-style: italic;
+            font-weight: 400;
+            src: url('./fonts/playfair-display-v37-latin-italic.woff2') format('woff2');
+        }
+        @font-face {
+            font-family: 'Montserrat';
+            font-weight: 400;
+            src: url('./fonts/montserrat-v26-latin-regular.woff2') format('woff2');
+        }
+        @font-face {
+            font-family: 'Montserrat';
+            font-weight: 600;
+            src: url('./fonts/montserrat-v26-latin-600.woff2') format('woff2');
+        }
+
+        :root {
+            --primary: #1b3022; 
+            --accent: #c0a080;  
+            --bg-paper: #f9f7f2; 
+            --text: #2c2c2c;
+        }
+
+        body, html { 
+            margin: 0; padding: 0; height: 100%; 
+            font-family: 'Montserrat', sans-serif; 
+            background: var(--bg-paper); 
+            overflow: hidden; color: var(--text);
+        }
+
+        /* --- TELA INTRODUTÓRIA --- */
+        #intro-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-paper);
+            background-image: radial-gradient(var(--accent) 0.5px, transparent 0.5px);
+            background-size: 30px 30px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px;
+            box-sizing: border-box;
+            transition: opacity 1s ease, visibility 1s;
+        }
+
+        #intro-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        #intro-screen h1 {
+            font-family: 'Playfair Display', serif;
+            color: var(--primary);
+            font-size: 2.2rem;
+            margin: 10px 0;
+        }
+
+        #intro-screen p {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-size: 1.1rem;
+            color: #444;
+            max-width: 400px;
+            line-height: 1.4;
+            margin-bottom: 30px;
+        }
+
+        /* --- MAPA E UI --- */
+        #map-container { 
+            height: 55%; width: 100%; position: relative; 
+            overflow: hidden; border-bottom: 2px solid var(--accent);
+        }
+        
+        #map { height: 100%; width: 100%; background: #e0ddd4; }
+
+        #fog-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1000;
+            pointer-events: none;
+            backdrop-filter: blur(20px) sepia(0.5);
+            background: rgba(249, 247, 242, 0.4);
+            mask-image: none;
+            -webkit-mask-image: none;
+        }
+
+        #ui-container { 
+            height: 45%; padding: 25px; box-sizing: border-box; 
+            display: flex; flex-direction: column; align-items: center; 
+            justify-content: space-between; background: var(--bg-paper);
+            background-image: radial-gradient(var(--accent) 0.5px, transparent 0.5px);
+            background-size: 20px 20px; position: relative;
+        }
+
+        .enigma-box { width: 100%; max-width: 450px; z-index: 1; text-align: center; transition: opacity 0.8s ease; }
+        h2 { font-family: 'Playfair Display', serif; color: var(--primary); margin: 0; font-size: 1.5rem; }
+        #step-indicator { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--accent); font-weight: 600; display: block; margin-bottom: 5px; cursor: pointer; }
+        
+        .clue-text { font-family: 'Playfair Display', serif; font-style: italic; color: #444; margin: 15px 0; font-size: 1.1rem; line-height: 1.4; min-height: 80px; display: flex; align-items: center; justify-content: center; }
+        
+        input[type="text"] { padding: 15px; width: 90%; background: transparent; border: none; border-bottom: 2px solid var(--accent); font-size: 1.2rem; text-align: center; outline: none; margin-bottom: 20px; font-family: 'Montserrat', sans-serif; }
+
+        button { padding: 15px 40px; background: var(--primary); color: var(--bg-paper); border: 1px solid var(--accent); border-radius: 50px; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 20px rgba(27, 48, 34, 0.2); }
+
+        .success-msg { color: var(--primary); font-weight: 600; margin-top: 15px; display: none; }
+    </style>
+
+    <link rel="stylesheet" href="leaflet.css" />
+</head>
+<body>
+
+<div id="intro-screen">
+    <img src="imagem.png" alt="MantiRai" style="width: 100%; max-width: 500px; margin-bottom: 10px;">
+    <h1>Bem-vinda ao MantiRai!</h1>
+    <h3 style="font-size: 0.9rem; font-weight: 400; padding: 0 20px;">Fique atenta! Você receberá dicas que podem revelar o nosso próximo destino.</h3>
+    <p>"Caminho se conhece andando, então vez em quando é bom se perder..."</p>
+    
+    <div class="input-group" style="width: 100%; max-width: 300px;">
+        <input type="text" id="intro-pass" placeholder="Senha de acesso..." autocomplete="off" style="margin-bottom: 10px;">
+    </div>
+    <button onclick="checkIntroPass()">Iniciar Jornada</button>
+</div>
+
+<div id="map-container">
+    <div id="map"></div>
+    <div id="fog-overlay"></div>
+</div>
+
+<div id="ui-container">
+    <div class="enigma-box" id="game-ui">
+        <span id="step-indicator" onclick="secretReset()">Registro de Viagem</span>
+        <h2 id="destination-title">Destino Oculto</h2>
+        <p class="clue-text" id="clue-display">Carregando coordenadas...</p>
+        
+        <div id="interaction-area">
+            <input type="text" id="pass-input" placeholder="Palavra-chave..." autocomplete="off">
+            <button id="main-btn" onclick="checkPass()">Desbloquear Rota</button>
+        </div>
+        
+        <p class="success-msg" id="msg">✨ Ponto Revelado ✨</p>
+    </div>
+</div>
+
+<script src="leaflet.js"></script>
+
+<script>
+    // 1. DADOS GEOGRÁFICOS
+    const caminhosGeoJSON = {
+        "type": "FeatureCollection",
+        "features": [
+            { "type": "Feature", "properties": { "trecho_id": 0 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -46.483006522206551, -23.434932383029707 ], [ -46.107554598556021, -23.319521610478986 ], [ -45.887673727846689, -23.19143566637646 ], [ -45.926099511077446, -23.078293082419233 ], [ -45.857787007556112, -23.009446887464122 ], [ -45.838640827369957, -22.95597767694424 ] ] ] } },
+            { "type": "Feature", "properties": { "trecho_id": 1 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -45.838540760226131, -22.954443314072176 ], [ -45.756318923712392, -22.817051125593444 ], [ -45.62769928817611, -22.828792337136175 ], [ -45.625697945299507, -22.792101051065139 ], [ -45.59297209905894, -22.738259627341016 ] ] ] } },
+            { "type": "Feature", "properties": { "trecho_id": 2 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -45.591637870474557, -22.72791935581191 ], [ -45.600747870771194, -22.660546112643171 ], [ -45.66881646062933, -22.656256255034432 ] ] ] } },
+            { "type": "Feature", "properties": { "trecho_id": 3 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -45.668718757474004, -22.656621515832978 ], [ -45.657344458791982, -22.686474880408955 ] ] ] } },
+            { "type": "Feature", "properties": { "trecho_id": 4 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -45.656560599498647, -22.685874477545976 ], [ -45.601607059678628, -22.658889704426457 ], [ -45.515415893126288, -22.556154103427549 ], [ -45.481793332799377, -22.459555953916897 ], [ -45.449000495873406, -22.425299635012408 ] ] ] } },
+            { "type": "Feature", "properties": { "trecho_id": 5 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -45.449242324804331, -22.425032789295514 ], [ -45.454412460568896, -22.415843289920449 ] ] ] } },
+            { "type": "Feature", "properties": { "trecho_id": 6 }, "geometry": { "type": "MultiLineString", "coordinates": [ [ [ -45.44929235837624, -22.425316312869697 ], [ -45.714353544524862, -22.25496867835626 ], [ -45.939571329571798, -22.233621021005842 ], [ -46.356918030772519, -22.276316335706682 ] ] ] } }
+        ]
+    };
+
+    const GRU_COORDS = [-23.425701,-46.482464];
+    const destinations = [
+        { id: 0, name: "Monteiro Lobato - SP", pass: "emilia", frase: "Vamos para Monteiro Lobato!", clue: "Dica: é feita de pano" , coords: [-22.9543304,-45.8387249] },
+        { id: 1, name: "Campos do Jordão - SP", pass: "1628", frase: "Pois é... Essa você já sabia...", clue: "Qual é a altitude da cidade mais alta do Brasil?" , coords: [-22.7317, -45.5911] },
+        { id: 2, name: "São Bento do Sapucaí - SP", pass: "tiradentes", frase: "Vamos descansar em um chalé!", clue: "Dica: tem a ver com o nosso primeiro beijo..." , coords: [-22.6558138,-45.6688404] },
+        { id: 3, name: "Pedra do Baú", pass: "bau", frase: "Mas é claro que iríamos na Pedra do Baú!", clue: "Vamos subir... Onde você guarda suas roupas mesmo?" , coords: [-22.6857839,-45.6570596] },
+        { id: 4, name: "Itajubá - MG", pass: "entrevilas", frase: "Hoje temos mordomia!", clue: "Preste atenção: a senha está pelo caminho..." , coords: [-22.4251246,-45.4489544] },
+        { id: 5, name: "Shiitake", pass: "salmao", frase: "Pode fazer jejum porque hoje vamos em um rodízio!", clue: "Dica: o contrário de açúcar e pé." , coords: [-22.4155463,-45.4544528] },
+        { id: 6, name: "Ouro Fino - MG", pass: "casa", frase: "Hora de ir para casa...", clue: "A dica do próximo destino se perdeu pelo caminho..." , coords: [-22.2831, -46.3686] }
+    ];
+
+    let currentStep = localStorage.getItem('tripProgress') ? parseInt(localStorage.getItem('tripProgress')) : 0;
+    let map;
+    let resetCounter = 0;
+
+    function checkIntroPass() {
+        const input = document.getElementById('intro-pass');
+        const senhaInicial = "rabudinha"; 
+
+        if (normalize(input.value) === senhaInicial) {
+            startExpedition();
+        } else {
+            input.style.borderBottomColor = "#d62828";
+            input.value = "";
+            input.placeholder = "Senha incorreta...";
+            setTimeout(() => { 
+                input.style.borderBottomColor = "var(--accent)";
+                input.placeholder = "Senha de acesso...";
+            }, 1500);
+        }
+    }
+
+    function startExpedition() {
+        document.getElementById('intro-screen').classList.add('hidden');
+        if (currentStep === 0) {
+            map.flyTo(GRU_COORDS, 11, { duration: 2 });
+        }
+    }
+
+    function initMap() {
+        map = L.map('map', { 
+            zoomControl: false,
+            minZoom: 8,
+            maxZoom: 16
+        }).setView(GRU_COORDS, 11);
+
+        const imageUrl = 'mapa_base.png';
+        const imageBounds = [[-23.575875703,-46.653102575], [-22.062068259,-45.281896599]]; 
+        L.imageOverlay(imageUrl, imageBounds).addTo(map);
+
+        L.marker(GRU_COORDS).addTo(map).bindPopup("Início da Expedição");
+
+        map.on('move zoom viewreset', updateFogHoles);
+        renderProgress();
+
+        if (currentStep > 0) {
+            document.getElementById('intro-screen').style.display = 'none';
+        }
+    }
+
+    const lineStyle = { color: "#196e08", weight: 4, opacity: 1, dashArray: "10, 10", lineJoin: "round" };
+
+    function updateFogHoles() {
+        const overlay = document.getElementById('fog-overlay');
+        
+        if (currentStep >= destinations.length) {
+            overlay.style.opacity = "0";
+            overlay.style.transition = "opacity 2.5s ease-out";
+            setTimeout(() => { overlay.style.display = "none"; }, 2500);
+            return;
+        }
+
+        const zoom = map.getZoom();
+        const baseRadius = 400;
+        const baseZoom = 12;
+        const dynamicRadius = baseRadius * Math.pow(2, zoom - baseZoom);
+
+        let maskGradients = [];
+        const gruPoint = map.latLngToContainerPoint(GRU_COORDS);
+        maskGradients.push(`radial-gradient(circle ${dynamicRadius}px at ${gruPoint.x}px ${gruPoint.y}px, transparent 0%, black 100%)`);
+
+        for (let i = 0; i < currentStep; i++) {
+            const point = map.latLngToContainerPoint(destinations[i].coords);
+            maskGradients.push(`radial-gradient(circle ${dynamicRadius}px at ${point.x}px ${point.y}px, transparent 0%, black 100%)`);
+        }
+
+        const maskString = maskGradients.join(', ');
+        overlay.style.webkitMaskImage = maskString;
+        overlay.style.maskImage = maskString;
+        overlay.style.webkitMaskComposite = "destination-in"; 
+        overlay.style.maskComposite = "intersect";
+    }
+
+    function normalize(text) { return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim(); }
+
+    function checkPass() {
+        const input = document.getElementById('pass-input');
+        if (normalize(input.value) === destinations[currentStep].pass) {
+            unlockCurrent();
+        } else {
+            input.style.borderBottomColor = "#d62828";
+            setTimeout(() => { input.style.borderBottomColor = "var(--accent)"; }, 1000);
+        }
+    }
+
+    function unlockCurrent() {
+        const d = destinations[currentStep];
+        L.marker(d.coords).addTo(map).bindPopup(`<b>${d.name}</b>`).openPopup();
+        
+        L.geoJSON(caminhosGeoJSON, {
+            filter: (feature) => feature.properties.trecho_id === currentStep,
+            style: lineStyle
+        }).addTo(map);
+
+        map.flyTo(d.coords, 12, { duration: 3 });
+        
+        currentStep++;
+        localStorage.setItem('tripProgress', currentStep);
+
+        if (currentStep >= destinations.length) {
+            setTimeout(() => {
+                showFinalScreen();
+                updateFogHoles();
+            }, 3500);
+        } else {
+            document.getElementById('pass-input').style.display = "none";
+            document.getElementById('msg').style.display = "block";
+            document.getElementById('destination-title').innerText = d.frase;
+            
+            const btn = document.getElementById('main-btn');
+            btn.innerText = "Próxima Dica";
+            btn.onclick = prepareNextStep;
+        }
+    }
+
+    function prepareNextStep() {
+        document.getElementById('pass-input').style.display = "inline-block";
+        document.getElementById('pass-input').value = "";
+        document.getElementById('msg').style.display = "none";
+        document.getElementById('main-btn').innerText = "Desbloquear Rota";
+        document.getElementById('main-btn').onclick = checkPass;
+        map.flyTo([-22.7, -45.7], 9, { duration: 2 });
+        updateClue();
+    }
+
+    function updateClue() {
+        if (currentStep < destinations.length) {
+            const d = destinations[currentStep];
+            document.getElementById('destination-title').innerText = "Destino Oculto";
+            document.getElementById('clue-display').innerText = d.clue;
+            document.getElementById('step-indicator').innerText = `Registro ${currentStep + 1} de ${destinations.length}`;
+        }
+    }
+
+    // NOVA FUNÇÃO: Tela de encerramento com Centralização Espacial Total
+    function showFinalScreen() {
+        const ui = document.getElementById('game-ui');
+        ui.style.opacity = "0";
+        
+        // 1. Zoom out para exibir todo o trajeto (fitBounds)
+        // Usamos o getBounds() do GeoJSON para garantir que todos os caminhos apareçam.
+        const allPaths = L.geoJSON(caminhosGeoJSON);
+        map.fitBounds(allPaths.getBounds(), {
+            padding: [40, 40], // Margem de segurança nas bordas
+            duration: 4,       // Transição lenta e épica
+            animate: true
+        });
+
+        setTimeout(() => {
+            ui.innerHTML = `
+                <span id="step-indicator" onclick="secretReset()">Expedição Concluída</span>
+                <h2 style="font-size: 1.8rem; color: var(--primary);">Ouro Fino nos espera!</h2>
+                <p class="clue-text" style="min-height: auto; margin: 20px 0;">
+                    "A jornada pela Mantiqueira termina aqui, mas a nossa história continua em cada curva do caminho."
+                </p>
+                <div style="color: var(--accent); font-size: 1.5rem; letter-spacing: 10px;">❤️🏠✨</div>
+            `;
+            ui.style.opacity = "1";
+        }, 800);
+    }
+
+    function renderProgress() {
+        for (let i = 0; i < currentStep; i++) {
+            L.marker(destinations[i].coords).addTo(map);
+        }
+        L.geoJSON(caminhosGeoJSON, {
+            filter: (feature) => feature.properties.trecho_id < currentStep,
+            style: lineStyle
+        }).addTo(map);
+
+        if (currentStep >= destinations.length) {
+            showFinalScreen();
+        } else {
+            updateClue();
+        }
+        updateFogHoles();
+    }
+
+    function secretReset() {
+        resetCounter++;
+        if (resetCounter >= 5) {
+            localStorage.clear();
+            window.location.href = window.location.pathname;
+        }
+    }
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+        .then(() => console.log("MantiRai pronto offline!"))
+        .catch(err => console.log("Erro SW:", err));
+    }
+
+    window.onload = initMap;
+</script>
+</body>
+</html>

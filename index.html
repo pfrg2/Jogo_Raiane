@@ -92,6 +92,27 @@
             margin-bottom: 30px;
         }
 
+        /* --- TELA DE INSTRUÇÕES --- */
+        #instructions-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-paper);
+            background-image: radial-gradient(var(--accent) 0.5px, transparent 0.5px);
+            background-size: 20px 20px;
+            z-index: 3000;
+            display: none;
+            flex-direction: column;
+            padding: 30px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        .inst-content { max-width: 500px; margin: 0 auto; text-align: left; }
+        .inst-content h2 { font-family: 'Playfair Display', serif; text-align: center; color: var(--primary); margin-bottom: 25px; }
+        .inst-section { margin-bottom: 20px; }
+        .inst-section h4 { color: var(--primary); margin-bottom: 8px; border-bottom: 1px solid var(--accent); display: inline-block; font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: 1px; font-size: 0.85rem; }
+        .inst-section p { font-size: 0.95rem; line-height: 1.5; color: #444; margin: 0; }
+
         /* --- MAPA E UI --- */
         #map-container { 
             height: 55%; width: 100%; position: relative; 
@@ -127,7 +148,9 @@
         
         input[type="text"] { padding: 15px; width: 90%; background: transparent; border: none; border-bottom: 2px solid var(--accent); font-size: 1.2rem; text-align: center; outline: none; margin-bottom: 20px; font-family: 'Montserrat', sans-serif; }
 
-        button { padding: 15px 40px; background: var(--primary); color: var(--bg-paper); border: 1px solid var(--accent); border-radius: 50px; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 10px 20px rgba(27, 48, 34, 0.2); }
+        button { padding: 15px 30px; background: var(--primary); color: var(--bg-paper); border: 1px solid var(--accent); border-radius: 50px; font-weight: 600; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem; box-shadow: 0 10px 20px rgba(27, 48, 34, 0.2); }
+
+        .btn-ghost { background: transparent !important; color: var(--primary) !important; border: 2px solid var(--primary) !important; box-shadow: none !important; }
 
         .success-msg { color: var(--primary); font-weight: 600; margin-top: 15px; display: none; }
     </style>
@@ -143,9 +166,48 @@
     <p>"Caminho se conhece andando, então vez em quando é bom se perder..."</p>
     
     <div class="input-group" style="width: 100%; max-width: 300px;">
-        <input type="text" id="intro-pass" placeholder="Senha de acesso..." autocomplete="off" style="margin-bottom: 10px;">
+        <input type="text" id="intro-pass" placeholder="Senha de acesso..." autocomplete="off" style="margin-bottom: 20px;">
     </div>
-    <button onclick="checkIntroPass()">Iniciar Jornada</button>
+
+    <div style="display: flex; gap: 10px;">
+        <button class="btn-ghost" onclick="showInstructions()">Guia de Preparação</button>
+        <button onclick="checkIntroPass()">Iniciar Jornada</button>
+    </div>
+</div>
+
+<div id="instructions-screen">
+    <div class="inst-content">
+        <h2>Guia de Preparação</h2>
+        
+        <div class="inst-section">
+            <p>Minha querida Rai, entre os dias 8, 9 e 10 de abril, você viverá dias de madame, mas uma madame camponesa, talvez.</p>
+        </div>
+
+        <div class="inst-section">
+            <p>Leve roupa de frio, estaremos a maior parte do tempo acima de 1.500 metros de altitude. Mas não precisa exagerar, o seu cobertor humano estará lá. Também teremos um jantar fora. Vale pensar em um look babilônico.</p>
+        </div>
+
+        <div class="inst-section">
+            <p>Não faremos trilha pesada, mas pode ser que tenha alguma caminhada leve.</p>
+        </div>
+
+        <div class="inst-section">
+            <p>Prepare para tirar fotos. Vamos passar por lugares belíssimos.</p>
+        </div>
+
+        <div class="inst-section">
+            <h4>Observação</h4>
+            <p>O MantiRai funciona sem internet. Qualquer dúvida, pergunte ao seu digníssimo e belíssimo namorado.</p>
+        </div>
+        
+        <div class="inst-section">
+            <p>Estou com saudades e te esperando aqui! Nos vemos em breve. Beijos!.</p>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="btn-ghost" onclick="hideInstructions()">Voltar</button>
+        </div>
+    </div>
 </div>
 
 <div id="map-container">
@@ -200,6 +262,10 @@
     let map;
     let resetCounter = 0;
 
+    // FUNÇÕES DA TELA INICIAL E INSTRUÇÕES
+    function showInstructions() { document.getElementById('instructions-screen').style.display = 'flex'; }
+    function hideInstructions() { document.getElementById('instructions-screen').style.display = 'none'; }
+
     function checkIntroPass() {
         const input = document.getElementById('intro-pass');
         const senhaInicial = "rabudinha"; 
@@ -226,9 +292,7 @@
 
     function initMap() {
         map = L.map('map', { 
-            zoomControl: false,
-            minZoom: 8,
-            maxZoom: 16
+            zoomControl: false, minZoom: 8, maxZoom: 16
         }).setView(GRU_COORDS, 11);
 
         const imageUrl = 'mapa_base.png';
@@ -249,7 +313,6 @@
 
     function updateFogHoles() {
         const overlay = document.getElementById('fog-overlay');
-        
         if (currentStep >= destinations.length) {
             overlay.style.opacity = "0";
             overlay.style.transition = "opacity 2.5s ease-out";
@@ -293,27 +356,18 @@
     function unlockCurrent() {
         const d = destinations[currentStep];
         L.marker(d.coords).addTo(map).bindPopup(`<b>${d.name}</b>`).openPopup();
-        
-        L.geoJSON(caminhosGeoJSON, {
-            filter: (feature) => feature.properties.trecho_id === currentStep,
-            style: lineStyle
-        }).addTo(map);
+        L.geoJSON(caminhosGeoJSON, { filter: (f) => f.properties.trecho_id === currentStep, style: lineStyle }).addTo(map);
 
         map.flyTo(d.coords, 12, { duration: 3 });
-        
         currentStep++;
         localStorage.setItem('tripProgress', currentStep);
 
         if (currentStep >= destinations.length) {
-            setTimeout(() => {
-                showFinalScreen();
-                updateFogHoles();
-            }, 3500);
+            setTimeout(() => { showFinalScreen(); updateFogHoles(); }, 3500);
         } else {
             document.getElementById('pass-input').style.display = "none";
             document.getElementById('msg').style.display = "block";
             document.getElementById('destination-title').innerText = d.frase;
-            
             const btn = document.getElementById('main-btn');
             btn.innerText = "Próxima Dica";
             btn.onclick = prepareNextStep;
@@ -339,19 +393,11 @@
         }
     }
 
-    // NOVA FUNÇÃO: Tela de encerramento com Centralização Espacial Total
     function showFinalScreen() {
         const ui = document.getElementById('game-ui');
         ui.style.opacity = "0";
-        
-        // 1. Zoom out para exibir todo o trajeto (fitBounds)
-        // Usamos o getBounds() do GeoJSON para garantir que todos os caminhos apareçam.
         const allPaths = L.geoJSON(caminhosGeoJSON);
-        map.fitBounds(allPaths.getBounds(), {
-            padding: [40, 40], // Margem de segurança nas bordas
-            duration: 4,       // Transição lenta e épica
-            animate: true
-        });
+        map.fitBounds(allPaths.getBounds(), { padding: [40, 40], duration: 4, animate: true });
 
         setTimeout(() => {
             ui.innerHTML = `
@@ -367,36 +413,21 @@
     }
 
     function renderProgress() {
-        for (let i = 0; i < currentStep; i++) {
-            L.marker(destinations[i].coords).addTo(map);
-        }
-        L.geoJSON(caminhosGeoJSON, {
-            filter: (feature) => feature.properties.trecho_id < currentStep,
-            style: lineStyle
-        }).addTo(map);
+        for (let i = 0; i < currentStep; i++) { L.marker(destinations[i].coords).addTo(map); }
+        L.geoJSON(caminhosGeoJSON, { filter: (f) => f.properties.trecho_id < currentStep, style: lineStyle }).addTo(map);
 
-        if (currentStep >= destinations.length) {
-            showFinalScreen();
-        } else {
-            updateClue();
-        }
+        if (currentStep >= destinations.length) { showFinalScreen(); } else { updateClue(); }
         updateFogHoles();
     }
 
     function secretReset() {
         resetCounter++;
-        if (resetCounter >= 5) {
-            localStorage.clear();
-            window.location.href = window.location.pathname;
-        }
+        if (resetCounter >= 5) { localStorage.clear(); window.location.href = window.location.pathname; }
     }
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js')
-        .then(() => console.log("MantiRai pronto offline!"))
-        .catch(err => console.log("Erro SW:", err));
+        navigator.serviceWorker.register('./sw.js').then(() => console.log("MantiRai pronto offline!"));
     }
-
     window.onload = initMap;
 </script>
 </body>
